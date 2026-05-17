@@ -1,8 +1,8 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-canvas.width = 400;
-canvas.height = 600;
+canvas.width = 648;
+canvas.height = 648;
 
 // create a player object (looks like a python dictionary!!)
 const player = {
