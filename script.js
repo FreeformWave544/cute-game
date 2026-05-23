@@ -34,7 +34,7 @@ function drawPlayer() {
 // draw the items
 function drawItems() {
     items.forEach((item, index) => {
-        ctx.fillStyle = '#FF69B4';
+        ctx.fillStyle = item.color;
         ctx.beginPath();
         ctx.arc(item.x, item.y, item.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -51,28 +51,34 @@ function drawScore() {
 // update the player's position
 function updatePlayer() {
     player.x += player.dx;
+    player.dx *= 0.9;
     if (player.x < 0) player.x = 0;
     if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
 }
 
-// update the items
 function updateItems() {
     items.forEach((item, index) => {
         item.y += item.dy;
-        // check if it collides with the player
-        if (
-            item.x > player.x &&
-            item.x < player.x + player.width &&
-            item.y > player.y &&
-            item.y < player.y + player.height
-        ) {
+        if (item.x + item.radius > canvas.width || item.x - item.radius < 0) {
+            item.direction *= -1;
+        }
+        item.x += item.dx * item.direction;
+        const closestX = Math.max(player.x, Math.min(item.x, player.x + player.width));
+        const closestY = Math.max(player.y, Math.min(item.y, player.y + player.height));
+
+        const distanceX = item.x - closestX;
+        const distanceY = item.y - closestY;
+
+        const distanceSquared = distanceX * distanceX + distanceY * distanceY;
+
+        if (distanceSquared < item.radius * item.radius) {
             items.splice(index, 1);
-            score++;
+            score += 5;
         }
         
-        // remove if it's off the screen
         if (item.y > canvas.height) {
             items.splice(index, 1);
+            score -= 2;
         }
     });
 }
@@ -83,8 +89,13 @@ function createItem() {
         x: Math.random() * (canvas.width - 20),
         y: -20,
         radius: 10,
-        dy: Math.random() * 2 + 1
+        dx: (Math.random() - 0.5) * 20,
+        dy: Math.random() * 2 + 1,
+        color: `hsl(${Math.random() * 360}, 70%, 75%)`,
+        direction: 1
     };
+    console.log(Math.random())
+    if (Math.random() <= 0.9) {item.dx = Math.random() - 0.5};
     items.push(item);
 }
 
@@ -102,18 +113,38 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+let highScore = 0
+function drawEndScreen() {
+    ctx.fillStyle = "white";
+    ctx.font = "48px Arial";
+    ctx.fillText("Game Over!", 180, 300);
+
+    ctx.font = "32px Arial";
+    ctx.fillText("Final Score: ${score}", 200, 360);
+    if (score > highScore){
+        ctx.font = "48px Arial";
+        ctx.fillText("New High Score!", 200, 400);
+        highScore = score;
+    }
+}
+
 // add some controls
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') player.dx = -5;
-    if (e.key === 'ArrowRight') player.dx = 5;
+    if (e.repeat) return;
+    if (e.key === 'ArrowLeft' && player.dx > -5) player.dx = -5;
+    if (e.key === 'ArrowRight' && player.dx < 5) player.dx = 5;
 });
 
-document.addEventListener('keyup', () => {
-    player.dx = 0;
-});
-
-// create items periodically
-setInterval(createItem, 1000);
+let count = 0
+const targetCount = 200
+const creationLoop = setInterval(() => {
+    createItem();
+    count += 1;
+    if (count >= targetCount) {
+        clearInterval(creationLoop);
+        drawEndScreen()
+    }
+}, 1000);
 
 // start the game!
 gameLoop();
